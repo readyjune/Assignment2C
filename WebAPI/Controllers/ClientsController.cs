@@ -74,5 +74,34 @@ namespace WebAPI.Controllers
 
             return NoContent();
         }
+
+        // POST: api/Clients/{id}/AssignJob
+        [HttpPost("{id}/AssignJob")]
+        public async Task<ActionResult<Job>> AssignJob(int id, Job job)
+        {
+            var client = await _context.Clients.FindAsync(id);
+            if (client == null)
+            {
+                return NotFound();
+            }
+
+            if (client.IsBusy)
+            {
+                return BadRequest("Client is currently busy.");
+            }
+
+            // You can add additional validations here if needed
+
+            job.ClientId = id;
+            _context.Jobs.Add(job);
+            await _context.SaveChangesAsync();
+
+            client.IsBusy = true;
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(AssignJob), new { id = job.Id }, job);
+        }
+
+     
     }
 }

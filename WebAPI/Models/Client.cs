@@ -9,7 +9,19 @@ namespace WebAPI.Models
         public int Port { get; set; }
 
         public int JobsCompleted { get; set; }
-        public bool IsBusy { get; set; }
+        private bool _isBusy;
+        public bool IsBusy
+        {
+            get => _isBusy;
+            set
+            {
+                if (_isBusy != value)
+                {
+                    _isBusy = value;
+                    OnPropertyChanged(nameof(IsBusy));
+                }
+            }
+        }
 
         private double _progressValue;
         public double ProgressValue
