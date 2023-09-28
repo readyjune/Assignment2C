@@ -141,6 +141,7 @@ namespace DesktopApplication
                             {
                                 MessageBox.Show($"Job started for client {client.Id}");
                                 client.IsBusy = true;
+                                IncrementProgressForClient(client); // Call this to simulate progress
                                 RefreshClientList();
                             }
                             else
@@ -283,6 +284,30 @@ namespace DesktopApplication
                 MessageBox.Show("An error occurred: " + ex.Message);
             }
         }
+
+        private async void IncrementProgressForClient(Client client)
+        {
+            // Example to fake a progress increment for a client
+            await Task.Run(async () =>
+            {
+                while (client.ProgressValue < 100)
+                {
+                    await Task.Delay(1000); // Delay for 1 second
+                    Dispatcher.Invoke(() =>
+                    {
+                        client.ProgressValue += 10;
+                    });
+
+
+                    if (client.ProgressValue >= 100)
+                    {
+                        client.ProgressValue = 100;
+                        client.IsBusy = false;
+                    }
+                }
+            });
+        }
+
 
     }
 }

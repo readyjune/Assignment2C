@@ -1,6 +1,8 @@
-﻿namespace WebAPI.Models
+﻿using System.ComponentModel;
+
+namespace WebAPI.Models
 {
-    public class Client
+    public class Client : INotifyPropertyChanged
     {
         public int Id { get; set; }
         public string? IPAddress { get; set; }
@@ -8,5 +10,23 @@
 
         public int JobsCompleted { get; set; }
         public bool IsBusy { get; set; }
+
+        private double _progressValue;
+        public double ProgressValue
+        {
+            get { return _progressValue; }
+            set
+            {
+                _progressValue = value;
+                OnPropertyChanged(nameof(ProgressValue));
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }

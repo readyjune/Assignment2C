@@ -23,6 +23,15 @@
                 <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="120" />
                 <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="80" />
                 <DataGridTextColumn Header="Jobs Completed" Binding="{Binding JobsCompleted}" Width="120" />
+
+                <!-- Add a new column for the Progress Bar -->
+                <DataGridTemplateColumn Header="Progress">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ProgressBar Name="ClientProgressBar" Height="20" Maximum="100" Value="{Binding ProgressValue}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
         <!-- Add a label to display working status and job completion count -->
