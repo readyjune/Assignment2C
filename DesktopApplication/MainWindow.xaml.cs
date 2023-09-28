@@ -1,7 +1,9 @@
 ﻿using IronPython.Hosting;
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
@@ -52,6 +54,9 @@ namespace DesktopApplication
 
                 serverThread.Start();
                 networkingThread.Start();
+
+                // Fetch clients on startup
+                FetchClientsAsync();
             }
             else
             {
@@ -82,11 +87,11 @@ namespace DesktopApplication
                         var returnedClient = JsonConvert.DeserializeObject<Client>(responseContent);
                         clientsList.Add(returnedClient);
                         RefreshClientList();
-                        MessageBox.Show("Registration successful!");
+                        JobStatus.Text = "Registration successful!";
                     }
                     else
                     {
-                        MessageBox.Show("Registration failed. Check your Web Service.");
+                        JobStatus.Text = "Registration failed. Check your Web Service.";
                     }
                 }
             }
@@ -100,93 +105,71 @@ namespace DesktopApplication
 
         private async void StartJobButton_Click(object sender, RoutedEventArgs e)
         {
+            // Ensure this runs on the UI thread
+            Dispatcher.Invoke(() =>
+            {
+                JobStatus.Text = "Starting jobs for available clients...";
+            });
+
             try
             {
-                // Create an HttpClient to send requests to the WebAPI
                 using (HttpClient httpClient = new HttpClient())
                 {
-                    // Define the job data (you may need to adjust this)
                     var jobData = new
                     {
                         TaskType = "PythonExecution",
                         PythonCode = PythonCodeInput.Text
                     };
 
-                    // Serialize the job data to JSON
                     var jsonContent = new StringContent(JsonConvert.SerializeObject(jobData), Encoding.UTF8, "application/json");
 
                     foreach (var client in clientsList)
                     {
-                        // Check if the client is busy
                         if (client.IsBusy)
                         {
-                            // Skip this client if they are busy
                             continue;
                         }
 
-                        var apiUrl = $"http://localhost:5074/api/clients/{client.Id}/jobCompleted"; // Construct the API URL
+                        var apiUrl = $"http://localhost:5074/api/clients/{client.Id}/jobCompleted";
 
                         var response = await httpClient.PostAsync(apiUrl, jsonContent);
 
-                        // Check if the job initiation was successful for this client
-                        if (response.IsSuccessStatusCode)
+                        // Ensure the following code runs on the UI thread
+                        Dispatcher.Invoke(() =>
                         {
-                            // Job initiation successful for this client, you can update UI or perform other actions
-                            MessageBox.Show($"Job started for client {client.Id}");
-
-                            // Mark the client as busy
-                            client.IsBusy = true;
-                        }
-                        else
-                        {
-                            // Handle job initiation failure for this client
-                            // You may want to log the error or take appropriate action
-                            MessageBox.Show($"Failed to start job for client {client.Id}. Check your Web Service.");
-                        }
+                            if (response.IsSuccessStatusCode)
+                            {
+                                MessageBox.Show($"Job started for client {client.Id}");
+                                client.IsBusy = true;
+                                RefreshClientList();
+                            }
+                            else
+                            {
+                                MessageBox.Show($"Failed to start job for client {client.Id}. Check your Web Service.");
+                            }
+                        });
                     }
+
+                    // Ensure this runs on the UI thread
+                    Dispatcher.Invoke(() =>
+                    {
+                        JobStatus.Text = "Job initiation completed. Check individual client statuses.";
+                    });
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("An error occurred: " + ex.Message);
+                Dispatcher.Invoke(() =>
+                {
+                    MessageBox.Show("An error occurred: " + ex.Message);
+                });
             }
         }
 
+
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                using (HttpClient httpClient = new HttpClient())
-                {
-                    // Send a GET request to the WebAPI's endpoint to retrieve client information
-                    var response = await httpClient.GetAsync("http://localhost:5074/api/clients");
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        // Parse the response JSON to get the list of clients
-                        var jsonString = await response.Content.ReadAsStringAsync();
-                        var updatedClientsList = JsonConvert.DeserializeObject<List<Client>>(jsonString); // Store the updated list
-
-                        // Update the existing clientsList without reassigning it
-                        clientsList.Clear();
-                        foreach (var client in updatedClientsList)
-                        {
-                            clientsList.Add(client);
-                        }
-
-                        // Update the ListView with the latest data
-                        RefreshClientList();
-                    }
-                    else
-                    {
-                        MessageBox.Show("Failed to retrieve client information. Check your Web Service.");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message);
-            }
+            await FetchClientsAsync();
         }
         private void RefreshClientList()
         {
@@ -206,13 +189,12 @@ namespace DesktopApplication
                 var script = engine.CreateScriptSourceFromString(pythonCode);
                 script.Execute(scope);
 
-                // Handle the execution result as needed
-                // For example, you can update the UI or perform other actions.
-                MessageBox.Show("Python code executed successfully.");
+                
+                JobStatus.Text = "Python code executed successfully.";
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Python code execution error: " + ex.Message);
+                JobStatus.Text = "Python code execution error: " + ex.Message;
             }
         }
 
@@ -247,5 +229,60 @@ namespace DesktopApplication
             bool isWorking = networkingThread.IsWorking; // Assuming you've implemented this method in NetworkingThread
             StatusLabel.Content = $"Status: {(isWorking ? "Working" : "Idle")}, Jobs Completed: {jobsCompleted}";
         }
+
+        private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Python Files|*.py|All Files|*.*";
+            openFileDialog.DefaultExt = ".py";
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var pythonCode = File.ReadAllText(openFileDialog.FileName);
+                    PythonCodeInput.Text = pythonCode;
+                    JobStatus.Text = "Python code loaded successfully!";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("An error occurred: " + ex.Message);
+                }
+            }
+        }
+        private async Task FetchClientsAsync()
+        {
+            try
+            {
+                using (HttpClient httpClient = new HttpClient())
+                {
+                    var response = await httpClient.GetAsync("http://localhost:5074/api/clients");
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var jsonString = await response.Content.ReadAsStringAsync();
+                        var updatedClientsList = JsonConvert.DeserializeObject<List<Client>>(jsonString);
+
+                        clientsList.Clear();
+                        foreach (var client in updatedClientsList)
+                        {
+                            clientsList.Add(client);
+                        }
+
+                        RefreshClientList();
+                        JobStatus.Text = "Client information refreshed successfully.";
+                    }
+                    else
+                    {
+                        JobStatus.Text = "Failed to retrieve client information. Check your Web Service.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("An error occurred: " + ex.Message);
+            }
+        }
+
     }
 }
