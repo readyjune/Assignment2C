@@ -46,7 +46,7 @@ namespace DesktopApplication
                 InitializeComponent();
                 clientDataGrid.ItemsSource = clientsList;
 
-                networkingThread = new NetworkingThread(clientsList, RefreshClientList);
+                networkingThread = new NetworkingThread(clientsList, RefreshClientList, this);
                 serverThread = new ServerThread(clientsList, RefreshClientList);
 
                 serverThread.Start();
@@ -237,41 +237,37 @@ namespace DesktopApplication
             else
             {
                 // Recreate and start the networking thread
-                networkingThread = new NetworkingThread(clientsList, RefreshClientList);
+                networkingThread = new NetworkingThread(clientsList, RefreshClientList, this);
                 networkingThread.Start();
                 NetworkingButton.Content = "Stop Networking";
                 isNetworkingActive = true;
             }
-
+            // Update the status label
+            UpdateStatusLabel();
             // Update the status label based on whether the thread is working or idle
-            bool isWorking = networkingThread?.IsWorking ?? false; // Assuming the IsWorking property exists in NetworkingThread
 
-            if (isWorking)
-            {
-                StatusLabel.Content = $"Status: Working, Jobs Completed: {jobsCompleted}";
-            }
-            else
-            {
-                // Check if networking is active but the thread is not working
-                if (isNetworkingActive)
-                {
-                    StatusLabel.Content = $"Status: Ready, Jobs Completed: {jobsCompleted}";
-                }
-                else
-                {
-                    StatusLabel.Content = $"Status: Idle, Jobs Completed: {jobsCompleted}";
-                }
-            }
         }
 
-        public static void IncrementJobsCompleted()
+        public void IncrementJobsCompleted(Client client)
         {
-            jobsCompleted++;
+            if (client.IPAddress == providedIPAddress && client.Port == providedPort)
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    jobsCompleted++;
+                    UpdateStatusLabel();
+                });
+            }
+        }
+        private void UpdateStatusLabel()
+        {
+            bool isWorking = networkingThread?.IsWorking ?? false;
+            string statusText = isWorking ? "Working" : "Idle";
+            StatusLabel.Content = $"Status: {statusText}, Jobs Completed: {jobsCompleted}";
         }
         private void QueryNetworkingStatusButton_Click(object sender, RoutedEventArgs e)
         {
-            bool isWorking = networkingThread?.IsWorking ?? false;  // Assuming you've implemented this method in NetworkingThread
-            StatusLabel.Content = $"Status: {(isWorking ? "Working" : "Idle")}, Jobs Completed: {jobsCompleted}";
+            UpdateStatusLabel();
         }
 
 
@@ -328,23 +324,63 @@ namespace DesktopApplication
                 }
             }
         }
-        private void ExecutePythonCodeButton_Click(object sender, RoutedEventArgs e)
+        private async void ExecutePythonCodeButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
             if (button?.Tag is Job job && job.PythonCode != null)
             {
+                // Disable the Execute button to prevent multiple clicks
+                button.IsEnabled = false;
+
+                // Get the matching client and set its IsBusy to true
+                var matchingClient = clientsList.FirstOrDefault(c => c.IPAddress == providedIPAddress && c.Port == providedPort);
+                if (matchingClient != null)
+                {
+                    matchingClient.IsBusy = true;
+                    RefreshClientList();  // To reflect the updated IsBusy status for the client
+                }
+
+                // Start the progress bar animation
+                int progressInterval = 100 / 5; // Increase progress by 20% every second
+                for (int i = 0; i < 5; i++)
+                {
+                    await Task.Delay(1000); // Delay for 1 second
+
+                    // Update the progress value of the specific job
+                    job.ProgressValue += progressInterval;
+
+                    // Refresh the job data grid to reflect the updated progress
+                    JobsDataGrid.Items.Refresh();
+                }
+
+                // Actually execute the Python code
                 string result = ExecutePythonCode(job.PythonCode);
 
                 // Update the job's Result property with the execution output
                 job.Result = result;
 
+                // If the client was found earlier, increment its JobsCompleted count and set its IsBusy to false
+                if (matchingClient != null)
+                {
+                    matchingClient.JobsCompleted++;
+                    matchingClient.IsBusy = false;
+                }
+
                 // Optionally, display the result to the user
                 MessageBox.Show($"Output: {result}");
 
-                 //Refresh the jobs results list to reflect the updated result (assuming you have implemented this)
-                 RefreshJobResultsList();
+                // Refresh the jobs results list to reflect the updated result
+                RefreshJobResultsList();
+                RefreshClientList();  // To reflect the updated JobsCompleted count and IsBusy status for the client
+
+                // Reset progress value for the job and re-enable the Execute button
+                job.ProgressValue = 0;
+                button.IsEnabled = true;
             }
         }
+
+
+
 
         private string ExecutePythonCode(string code)
         {

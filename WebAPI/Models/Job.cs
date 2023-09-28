@@ -12,5 +12,6 @@
         public string? Result { get; set; }     // Output/result of the Python execution
         public string? IPAddress { get; set; }
         public int? Port { get; set; }
+        public int ProgressValue { get; set; } = 0;
     }
 }

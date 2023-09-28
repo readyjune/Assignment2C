@@ -29,6 +29,14 @@
                 <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="200"/>
                 <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="100"/>
                 <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="50"/>
+                <!-- Add a new column for the Progress Bar -->
+                <DataGridTemplateColumn Header="Progress">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ProgressBar Name="ClientProgressBar" Height="20" Maximum="100" Value="{Binding ProgressValue}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTemplateColumn Header="Action" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -39,6 +47,7 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                
             </DataGrid.Columns>
         </DataGrid>
 
@@ -53,14 +62,7 @@
 
                 <DataGridTextColumn Header="Jobs Completed" Binding="{Binding JobsCompleted}" Width="120" />
 
-                <!-- Add a new column for the Progress Bar -->
-                <DataGridTemplateColumn Header="Progress">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <ProgressBar Name="ClientProgressBar" Height="20" Maximum="100" Value="{Binding ProgressValue}" />
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                
             </DataGrid.Columns>
         </DataGrid>
 

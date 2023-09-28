@@ -12,13 +12,15 @@ namespace DesktopApplication
         private List<Client> clientsList;
         private Action refreshClientList;
         private CancellationTokenSource cancellationTokenSource;
+        private MainWindow mainWindowInstance;
 
         public bool IsWorking { get; private set; } = false; // To indicate if the networking thread is currently working
 
-        public NetworkingThread(List<Client> clientsList, Action refreshClientList)
+        public NetworkingThread(List<Client> clientsList, Action refreshClientList, MainWindow mainWindow)
         {
             this.clientsList = clientsList;
             this.refreshClientList = refreshClientList;
+            this.mainWindowInstance = mainWindow;
             cancellationTokenSource = new CancellationTokenSource();
             thread = new Thread(NetworkingThreadLogic);
         }
@@ -70,7 +72,7 @@ namespace DesktopApplication
 
                         // Placeholder: Process the job and when done:
                         client.IsBusy = false;
-                        MainWindow.IncrementJobsCompleted();
+                        mainWindowInstance.IncrementJobsCompleted(client);
 
                         IsWorking = false;
                         Application.Current.Dispatcher.Invoke(refreshClientList);
