@@ -9,7 +9,7 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-
+using System.Windows.Controls;
 using WebAPI.Models;
 
 namespace DesktopApplication
@@ -19,17 +19,21 @@ namespace DesktopApplication
     /// </summary>
     public partial class MainWindow : Window
     {
-        private List<Client> clientsList = new List<Client>(); // Initialize the list
+        private List<Client> clientsList = new List<Client>();
         private List<Job> pendingJobs = new List<Job>();
 
-        private readonly ServerThread? serverThread; // Use nullable type
-        private NetworkingThread? networkingThread; // Use nullable type
-        private static int jobsCompleted = 0; // Static counter for completed jobs
+        private readonly ServerThread? serverThread;
+        private NetworkingThread? networkingThread;
+        private static int jobsCompleted = 0;
 
-        private readonly string? providedIPAddress; // Use nullable type
+        private readonly string? providedIPAddress;
         private readonly int providedPort;
-        private bool isNetworkingActive = false; // A flag to track the state of networking
-
+        private bool isNetworkingActive = false;
+        private string uploadedPythonFilePath = string.Empty;
+        private string uploadedPythonFileName = string.Empty;
+        private readonly ClientService _clientService = new ClientService();
+        private readonly JobService _jobService = new JobService();
+        private readonly JobExecutor _jobExecutor = new JobExecutor();
 
         public MainWindow()
         {
@@ -48,52 +52,33 @@ namespace DesktopApplication
                 serverThread.Start();
                 networkingThread.Start();
 
-                // Fetch clients on startup
-                FetchClientsAsync();
+                FetchClientsAndJobsOnStartup();
             }
             else
             {
                 Application.Current.Shutdown();
             }
         }
+        private async void FetchClientsAndJobsOnStartup()
+        {
+            clientsList = await _clientService.FetchClientsAsync();
+            RefreshClientList();
 
+            pendingJobs = await _jobService.FetchJobsAsync();
+            RefreshPendingJobsList();
+        }
         private async void RegisterButton_Click(object sender, RoutedEventArgs e)
         {
-            try
+            var registeredClient = await _clientService.RegisterClientAsync(providedIPAddress ?? "", providedPort);
+            if (registeredClient != null)
             {
-                var client = new Client
-                {
-                    IPAddress = providedIPAddress,
-                    Port = providedPort
-                };
-
-                using (HttpClient httpClient = new HttpClient())
-                {
-                    var jsonContent = new StringContent(JsonConvert.SerializeObject(client), Encoding.UTF8, "application/json");
-                    var response = await httpClient.PostAsync("http://localhost:5074/api/clients/Register", jsonContent);
-                    var responseContent = await response.Content.ReadAsStringAsync();
-
-                    MessageBox.Show($"Response Status Code: {response.StatusCode}\nResponse Content: {responseContent}");
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var returnedClient = JsonConvert.DeserializeObject<Client>(responseContent);
-                        if (returnedClient != null)
-                        {
-                            clientsList.Add(returnedClient);
-                        }
-                        RefreshClientList();
-                        JobStatus.Text = "Registration successful!";
-                    }
-                    else
-                    {
-                        JobStatus.Text = "Registration failed. Check your Web Service.";
-                    }
-                }
+                clientsList.Add(registeredClient);
+                RefreshClientList();
+                JobStatus.Text = "Registration successful!";
             }
-            catch (Exception ex)
+            else
             {
-                MessageBox.Show("An error occurred: " + ex.Message);
+                JobStatus.Text = "Registration failed. Check your Web Service.";
             }
         }
 
@@ -183,7 +168,8 @@ namespace DesktopApplication
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
         {
-            await FetchClientsAsync();
+            clientsList = await _clientService.FetchClientsAsync();
+            RefreshClientList();
         }
         private void RefreshClientList()
         {
@@ -191,81 +177,44 @@ namespace DesktopApplication
             clientDataGrid.ItemsSource = null;
             clientDataGrid.ItemsSource = clientsList;
         }
+        private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "Python Files|*.py|All Files|*.*";
+            openFileDialog.DefaultExt = ".py";
+
+            if (openFileDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    uploadedPythonFilePath = openFileDialog.FileName;  // Save the file path
+                    uploadedPythonFileName = Path.GetFileName(uploadedPythonFilePath);
+                    PythonCodeInput.Text = uploadedPythonFilePath;
+                    JobStatus.Text = "Python code loaded successfully!";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("An error occurred: " + ex.Message);
+                }
+            }
+        }
 
         private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
             var pythonCode = PythonCodeInput.Text;
-
-            if (string.IsNullOrWhiteSpace(pythonCode))
+            
+            if (!string.IsNullOrWhiteSpace(pythonCode) && await _jobService.SubmitJobAsync(pythonCode, uploadedPythonFilePath))
             {
-                MessageBox.Show("Please provide valid Python code.");
-                return;
+                MessageBox.Show("Job added to queue!");
+                pendingJobs = await _jobService.FetchJobsAsync();
+                RefreshPendingJobsList();
             }
-
-            var newJob = new Job
+            else
             {
-                PythonCode = pythonCode,
-                Status = "Pending"
-            };
-
-            try
-            {
-                using (HttpClient httpClient = new HttpClient())
-                {
-                    var jsonContent = new StringContent(JsonConvert.SerializeObject(newJob), Encoding.UTF8, "application/json");
-                    var response = await httpClient.PostAsync("http://localhost:5074/api/jobs", jsonContent);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        MessageBox.Show("Job added to queue!");
-                        await FetchJobsAsync();  // Refresh the job list after submitting
-                    }
-                    else
-                    {
-                        var responseBody = await response.Content.ReadAsStringAsync();
-                        MessageBox.Show($"HTTP Error: {response.StatusCode}\nReason: {response.ReasonPhrase}\nBody: {responseBody}");
-                        JobStatus.Text = "Failed to retrieve client information. Check your Web Service.";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message);
+                MessageBox.Show("Job submission failed. Check your Web Service.");
             }
         }
-        private async Task FetchJobsAsync()
-        {
-            try
-            {
-                using (HttpClient httpClient = new HttpClient())
-                {
-                    var response = await httpClient.GetAsync("http://localhost:5074/api/jobs");
 
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var jsonString = await response.Content.ReadAsStringAsync();
-                        var updatedJobsList = JsonConvert.DeserializeObject<List<Job>>(jsonString);
-
-                        pendingJobs.Clear();
-                        foreach (var job in updatedJobsList)
-                        {
-                            pendingJobs.Add(job);
-                        }
-
-                        RefreshPendingJobsList();
-                        JobStatus.Text = "Job information refreshed successfully.";
-                    }
-                    else
-                    {
-                        JobStatus.Text = "Failed to retrieve job information. Check your Web Service.";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message);
-            }
-        }
 
 
         private void RefreshPendingJobsList()
@@ -323,55 +272,8 @@ namespace DesktopApplication
             StatusLabel.Content = $"Status: {(isWorking ? "Working" : "Idle")}, Jobs Completed: {jobsCompleted}";
         }
 
-        private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "Python Files|*.py|All Files|*.*";
-            openFileDialog.DefaultExt = ".py";
-
-            if (openFileDialog.ShowDialog() == true)
-            {
-                try
-                {
-                    var pythonCode = File.ReadAllText(openFileDialog.FileName);
-                    PythonCodeInput.Text = pythonCode;
-                    JobStatus.Text = "Python code loaded successfully!";
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("An error occurred: " + ex.Message);
-                }
-            }
-        }
-        private async Task FetchClientsAsync()
-        {
-            try
-            {
-                using (HttpClient httpClient = new HttpClient())
-                {
-                    var response = await httpClient.GetAsync("http://localhost:5074/api/clients");
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        var jsonString = await response.Content.ReadAsStringAsync();
-                        var updatedClientsList = JsonConvert.DeserializeObject<List<Client>>(jsonString);
-
-                        clientsList.Clear();
-                        clientsList.AddRange(updatedClientsList);
-                        RefreshClientList();
-                        JobStatus.Text = "Client information refreshed successfully.";
-                    }
-                    else
-                    {
-                        JobStatus.Text = $"Failed to retrieve client information. Status: {response.StatusCode}";
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("An error occurred: " + ex.Message);
-            }
-        }
+        
+        
 
 
         private async void IncrementProgressForClient(Client client)
@@ -403,10 +305,57 @@ namespace DesktopApplication
 
         private async void RefreshJobsButton_Click(object sender, RoutedEventArgs e)
         {
-            await FetchJobsAsync();
+            pendingJobs = await _jobService.FetchJobsAsync();
+            RefreshPendingJobsList();
         }
 
-        
+        private void DownloadPythonCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button?.Tag is Job job && job.FileName != null)
+            {
+                var saveFileDialog = new SaveFileDialog();
+                saveFileDialog.Filter = "Python Files|*.py";
+                saveFileDialog.DefaultExt = ".py";
+                saveFileDialog.FileName = job.FileName; // Suggest the filename
+                if (saveFileDialog.ShowDialog() == true)
+                {
+                    try
+                    {
+                        File.WriteAllText(saveFileDialog.FileName, job.PythonCode ?? "");
+                        MessageBox.Show("Python code saved successfully!");
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show("An error occurred: " + ex.Message);
+                    }
+                }
+            }
+        }
+        private void ExecutePythonCodeButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+            if (button?.Tag is Job job && job.PythonCode != null)
+            {
+                ExecutePythonCode(job.PythonCode);
+            }
+        }
+        private void ExecutePythonCode(string code)
+        {
+            var engine = IronPython.Hosting.Python.CreateEngine();
+            var scope = engine.CreateScope();
+
+            try
+            {
+                engine.Execute(code, scope);
+                var result = scope.GetVariable("result");  // Assuming your Python code produces a variable named "result"
+                MessageBox.Show($"Result: {result}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error executing Python code: " + ex.Message);
+            }
+        }
 
     }
 }
