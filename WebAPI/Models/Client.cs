@@ -8,7 +8,20 @@ namespace WebAPI.Models
         public string? IPAddress { get; set; }
         public int Port { get; set; }
 
-        public int JobsCompleted { get; set; }
+        private int _jobsCompleted;
+        public int JobsCompleted
+        {
+            get { return _jobsCompleted; }
+            set
+            {
+                _jobsCompleted = value;
+                OnPropertyChanged("JobsCompleted");
+            }
+        }
+
+
+
+
         private bool _isBusy;
         public bool IsBusy
         {

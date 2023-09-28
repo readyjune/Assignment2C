@@ -274,8 +274,8 @@ namespace DesktopApplication
             StatusLabel.Content = $"Status: {(isWorking ? "Working" : "Idle")}, Jobs Completed: {jobsCompleted}";
         }
 
-        
-        
+
+
 
 
         private async void IncrementProgressForClient(Client client)
@@ -291,16 +291,14 @@ namespace DesktopApplication
                         client.ProgressValue += 10;
                     });
 
-
                     if (client.ProgressValue >= 100)
                     {
                         client.ProgressValue = 100;
                         client.IsBusy = false;
-                        
+                        client.JobsCompleted++; // Increase the jobs completed count
                     }
                 }
                 client.ProgressValue = 0;
-                
             });
         }
 
@@ -335,13 +333,24 @@ namespace DesktopApplication
             var button = sender as Button;
             if (button?.Tag is Job job && job.PythonCode != null)
             {
-                ExecutePythonCode(job.PythonCode);
+                string result = ExecutePythonCode(job.PythonCode);
+
+                // Update the job's Result property with the execution output
+                job.Result = result;
+
+                // Optionally, display the result to the user
+                MessageBox.Show($"Output: {result}");
+
+                 //Refresh the jobs results list to reflect the updated result (assuming you have implemented this)
+                 RefreshJobResultsList();
             }
         }
-        private void ExecutePythonCode(string code)
+
+        private string ExecutePythonCode(string code)
         {
             var engine = IronPython.Hosting.Python.CreateEngine();
             var scope = engine.CreateScope();
+            string output = string.Empty;
 
             // Create a stream to capture the printed output
             using (MemoryStream ms = new MemoryStream())
@@ -358,17 +367,22 @@ namespace DesktopApplication
                     ms.Seek(0, SeekOrigin.Begin);
                     using (StreamReader sr = new StreamReader(ms))
                     {
-                        var output = sr.ReadToEnd();
-                        MessageBox.Show($"Output: {output}");
+                        output = sr.ReadToEnd();
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Error executing Python code: " + ex.Message);
+                    output = "Error executing Python code: " + ex.Message;
                 }
             }
+            return output;
         }
 
 
+        private void RefreshJobResultsList()
+        {
+            JobResultsDataGrid.ItemsSource = null;
+            JobResultsDataGrid.ItemsSource = pendingJobs; // Assuming completedJobs is a list of jobs that have been executed
+        }
     }
 }

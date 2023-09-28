@@ -64,5 +64,15 @@
             </DataGrid.Columns>
         </DataGrid>
 
+        <DataGrid Name="JobResultsDataGrid" Margin="10, 830, 0, 0" Height="200" VerticalAlignment="Top" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Job ID" Binding="{Binding Id}" Width="50"/>
+                <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="150"/>
+                <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="100"/>
+                <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="50"/>
+                <DataGridTextColumn Header="Result" Binding="{Binding Result}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
     </Grid>
 </Window>
