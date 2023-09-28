@@ -189,7 +189,9 @@ namespace DesktopApplication
                 {
                     uploadedPythonFilePath = openFileDialog.FileName;  // Save the file path
                     uploadedPythonFileName = Path.GetFileName(uploadedPythonFilePath);
-                    PythonCodeInput.Text = uploadedPythonFilePath;
+                    var pythonCodeContent = File.ReadAllText(uploadedPythonFilePath);
+                    PythonCodeInput.Text = pythonCodeContent;  // Set the TextBox to the actual Python code
+                    //PythonCodeInput.Text = uploadedPythonFilePath;
                     JobStatus.Text = "Python code loaded successfully!";
                 }
                 catch (Exception ex)
@@ -202,8 +204,8 @@ namespace DesktopApplication
         private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
             var pythonCode = PythonCodeInput.Text;
-            
-            if (!string.IsNullOrWhiteSpace(pythonCode) && await _jobService.SubmitJobAsync(pythonCode, uploadedPythonFilePath))
+
+            if (!string.IsNullOrWhiteSpace(pythonCode) && await _jobService.SubmitJobAsync(pythonCode, uploadedPythonFilePath, providedIPAddress, providedPort))
             {
                 MessageBox.Show("Job added to queue!");
                 pendingJobs = await _jobService.FetchJobsAsync();
@@ -220,8 +222,8 @@ namespace DesktopApplication
         private void RefreshPendingJobsList()
         {
             // Assuming you have a ListBox named "JobsListBox" in your XAML
-            JobsListBox.ItemsSource = null;
-            JobsListBox.ItemsSource = pendingJobs;
+            JobsDataGrid.ItemsSource = null;
+            JobsDataGrid.ItemsSource = pendingJobs;
         }
         private void NetworkingButton_Click(object sender, RoutedEventArgs e)
         {
@@ -312,23 +314,19 @@ namespace DesktopApplication
         private void DownloadPythonCodeButton_Click(object sender, RoutedEventArgs e)
         {
             var button = sender as Button;
-            if (button?.Tag is Job job && job.FileName != null)
+            if (button?.Tag is Job job && job.PythonCode != null)
             {
-                var saveFileDialog = new SaveFileDialog();
-                saveFileDialog.Filter = "Python Files|*.py";
-                saveFileDialog.DefaultExt = ".py";
-                saveFileDialog.FileName = job.FileName; // Suggest the filename
-                if (saveFileDialog.ShowDialog() == true)
+                // Use the job's filename directly instead of opening a new SaveFileDialog
+                var saveFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), job.FileName);
+
+                try
                 {
-                    try
-                    {
-                        File.WriteAllText(saveFileDialog.FileName, job.PythonCode ?? "");
-                        MessageBox.Show("Python code saved successfully!");
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show("An error occurred: " + ex.Message);
-                    }
+                    File.WriteAllText(saveFilePath, job.PythonCode);
+                    MessageBox.Show($"Python code saved successfully to {saveFilePath}!");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("An error occurred: " + ex.Message);
                 }
             }
         }
@@ -345,17 +343,32 @@ namespace DesktopApplication
             var engine = IronPython.Hosting.Python.CreateEngine();
             var scope = engine.CreateScope();
 
-            try
+            // Create a stream to capture the printed output
+            using (MemoryStream ms = new MemoryStream())
+            using (StreamWriter sw = new StreamWriter(ms))
             {
-                engine.Execute(code, scope);
-                var result = scope.GetVariable("result");  // Assuming your Python code produces a variable named "result"
-                MessageBox.Show($"Result: {result}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Error executing Python code: " + ex.Message);
+                // Redirect the output stream of the IronPython engine to this stream
+                engine.Runtime.IO.SetOutput(ms, sw);
+
+                try
+                {
+                    engine.Execute(code, scope);
+
+                    // Go back to the beginning of the stream to read its contents
+                    ms.Seek(0, SeekOrigin.Begin);
+                    using (StreamReader sr = new StreamReader(ms))
+                    {
+                        var output = sr.ReadToEnd();
+                        MessageBox.Show($"Output: {output}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error executing Python code: " + ex.Message);
+                }
             }
         }
+
 
     }
 }

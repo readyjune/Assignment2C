@@ -24,20 +24,26 @@
         <Button Content="Refresh" Margin="200,330,0,0" Width="100" Name="RefreshButtonForJob" VerticalAlignment="Top" Click="RefreshJobsButton_Click" />
 
         <TextBlock Name="JobStatus" Margin="10,140,0,0" VerticalAlignment="Top" />
-        <ListBox Name="JobsListBox" Margin="10, 370, 0, 0" Height="50" VerticalAlignment="Top">
-            <ListBox.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="{Binding FileName}" Width="400"/>
-                        <Button Content="Download" Click="DownloadPythonCodeButton_Click" Tag="{Binding}" Margin="10,0,0,0"/>
-                        <Button Content="Execute" Click="ExecutePythonCodeButton_Click" Tag="{Binding}" Margin="10,0,0,0"/>
-                    </StackPanel>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+        <DataGrid Name="JobsDataGrid" Margin="10, 370, 0, 0" Height="150" VerticalAlignment="Top" AutoGenerateColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="File Name" Binding="{Binding FileName}" Width="200"/>
+                <DataGridTextColumn Header="IP Address" Binding="{Binding IPAddress}" Width="100"/>
+                <DataGridTextColumn Header="Port" Binding="{Binding Port}" Width="50"/>
+                <DataGridTemplateColumn Header="Action" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="Download" Click="DownloadPythonCodeButton_Click" Tag="{Binding}" Margin="10,0,0,0"/>
+                                <Button Content="Execute" Click="ExecutePythonCodeButton_Click" Tag="{Binding}" Margin="10,0,0,0"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
 
 
-        <DataGrid Name="clientDataGrid" AutoGenerateColumns="False" Margin="10,500,0,0" VerticalAlignment="Top">
+        <DataGrid Name="clientDataGrid" AutoGenerateColumns="False" Margin="10,600,0,0" VerticalAlignment="Top">
             <DataGrid.Columns>
                 <!-- Define columns for ID, IP Address, Port, and Jobs Completed -->
                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50" />

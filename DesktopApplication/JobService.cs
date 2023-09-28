@@ -28,14 +28,16 @@ namespace DesktopApplication
             }
         }
 
-        public async Task<bool> SubmitJobAsync(string pythonCode, string uploadedPythonFilePath)
+        public async Task<bool> SubmitJobAsync(string pythonCode, string filePath, string? ipAddress, int? port)
         {
             try
             {
                 var newJob = new Job
                 {
                     PythonCode = pythonCode,
-                    FileName = Path.GetFileName(uploadedPythonFilePath), // Add this line
+                    FileName = Path.GetFileName(filePath),
+                    IPAddress = ipAddress,
+                    Port = port,
                     Status = "Pending"
                 };
 

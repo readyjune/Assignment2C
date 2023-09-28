@@ -10,5 +10,7 @@
         public string? OutputData { get; set; } 
         public string? Status { get; set; }     // e.g., pending, in progress, completed
         public string? Result { get; set; }     // Output/result of the Python execution
+        public string? IPAddress { get; set; }
+        public int? Port { get; set; }
     }
 }
