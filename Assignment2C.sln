@@ -7,6 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebAPI", "WebAPI\WebAPI.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesktopApplication", "DesktopApplication\DesktopApplication.csproj", "{09F74C56-CCB1-4800-9E46-A66CB03E49A3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientServer", "ClientServer\ClientServer.csproj", "{D3D7E5FE-9C2A-4973-9234-F7368FA3E042}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{56183946-1037-4956-9FDE-786E15383920}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{09F74C56-CCB1-4800-9E46-A66CB03E49A3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{09F74C56-CCB1-4800-9E46-A66CB03E49A3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{09F74C56-CCB1-4800-9E46-A66CB03E49A3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D3D7E5FE-9C2A-4973-9234-F7368FA3E042}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D3D7E5FE-9C2A-4973-9234-F7368FA3E042}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D3D7E5FE-9C2A-4973-9234-F7368FA3E042}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D3D7E5FE-9C2A-4973-9234-F7368FA3E042}.Release|Any CPU.Build.0 = Release|Any CPU
+		{56183946-1037-4956-9FDE-786E15383920}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{56183946-1037-4956-9FDE-786E15383920}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{56183946-1037-4956-9FDE-786E15383920}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{56183946-1037-4956-9FDE-786E15383920}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
