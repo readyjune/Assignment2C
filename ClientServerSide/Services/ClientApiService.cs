@@ -50,7 +50,34 @@ namespace ClientServer.Services
             }
         }
 
+        public async Task UpdateClientNoHelpAsync(string ipAddress, int port)
+        {
+            try
+            {
+                var updateRequest = new
+                {
+                    IPAddress = ipAddress,
+                    Port = port,
+                    NeedHelp = "No" // Set NeedHelp to "No"
+                };
 
+                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-need-help", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("NeedHelp updated to 'No' successfully."); // Log success
+                }
+                else
+                {
+                    Console.WriteLine($"Error updating 'NeedHelp' property to 'No': {response.ReasonPhrase}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating 'NeedHelp' property to 'No': {ex.Message}");
+            }
+        }
 
 
 

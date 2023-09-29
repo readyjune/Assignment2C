@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Client"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="200" Width="400">
     <Grid>
-        <TextBox Name="PythonCodeInput" Margin="0, 160, 0, 0" Width="400" Height="50" VerticalAlignment="Top" />
-        <Button Content="Browse Python Code" Margin="300, 160, 0, 0" Width="100" Height="50" VerticalAlignment="Top" Click="BrowsePythonCodeButton_Click" />
-        <Button Content="Submit" Margin="0,250,0,0" Width="100" Height="50" VerticalAlignment="Top" Click="SubmitButton_Click"/>
+        <TextBox Name="PythonCodeInput" Margin="0, 60, 0, 0" Width="400" Height="50" VerticalAlignment="Top" />
+        <Button Content="Browse Python Code" Margin="300, 60, 0, 0" Width="100" Height="50" VerticalAlignment="Top" Click="BrowsePythonCodeButton_Click" />
+        <Button Content="Submit" Margin="0,120,0,0" Width="100" Height="50" VerticalAlignment="Top" Click="SubmitButton_Click"/>
         
     </Grid>
 </Window>

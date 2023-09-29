@@ -16,6 +16,8 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
+
 namespace Client
 {
     /// <summary>
@@ -28,7 +30,7 @@ namespace Client
         private string providedIPAddress;
         private int providedPort;
         private readonly ClientApiService _clientApiService;
-
+        private DispatcherTimer _monitoringTimer;
         public MainWindow()
         {
             InitializeComponent();
@@ -36,8 +38,85 @@ namespace Client
 
             // Attach the Loaded event to call InitializeAsync method
             this.Loaded += async (sender, e) => await InitializeAsync();
+
+            StartMonitoring();
+        }
+        private void StartMonitoring()
+        {
+            _monitoringTimer = new DispatcherTimer();
+            _monitoringTimer.Interval = TimeSpan.FromSeconds(15);
+            _monitoringTimer.Tick += CheckClientsStatus;
+            _monitoringTimer.Start();
         }
 
+        private async void CheckClientsStatus(object sender, EventArgs e)
+        {
+            try
+            {
+                var allClients = await _clientApiService.GetAllClientsAsync();
+
+                foreach (var client in allClients)
+                {
+                    if (client.IPAddress == providedIPAddress && client.Port == providedPort)
+                    {
+                        // Skip this iteration if the client is the current client (i.e., has the same IP and port)
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(client.NeedHelp) && client.NeedHelp.Trim().Equals("Yes", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Send a message to that client
+                        SendHelpMessageAsync(client.IPAddress, client.Port);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during monitoring: {ex.Message}");
+            }
+        }
+        private void SendHelpRequestToServer(string targetIPAddress, int targetPort)
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient(targetIPAddress, targetPort))
+                {
+                    NetworkStream stream = client.GetStream();
+                    StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
+
+                    // Send the message type first
+                    writer.WriteLine("HelpRequest");
+
+                    // Then send the source client's IP and port (i.e., this client's IP and port)
+                    writer.WriteLine(providedIPAddress); // this client's IP
+                    writer.WriteLine(providedPort.ToString()); // this client's port
+
+                    // Then send the actual help request message
+                    writer.WriteLine("Do you need help?");
+
+                    Console.WriteLine($"Sent help message to {targetIPAddress}:{targetPort}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending help message to {targetIPAddress}:{targetPort}: {ex.Message}");
+            }
+        }
+
+        private async Task SendHelpMessageAsync(string ipAddress, int port)
+        {
+            try
+            {
+                SendHelpRequestToServer(ipAddress, port);
+                // Update the 'NeedHelp' status of the client to 'No' after sending the help message
+                await _clientApiService.UpdateClientNoHelpAsync(ipAddress, port);
+                Console.WriteLine($"Updated NeedHelp status to 'No' for {ipAddress}:{port}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending help message to {ipAddress}:{port}: {ex.Message}");
+            }
+        }
         private async Task InitializeAsync()
         {
             OpenDialog openDialog = new OpenDialog();

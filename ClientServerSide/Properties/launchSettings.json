@@ -2,7 +2,7 @@
   "profiles": {
     "ClientServerSide": {
       "commandName": "Project",
-      "commandLineArgs": "127.0.0.2 12346"
+      "commandLineArgs": "127.0.0.1 12345"
     }
   }
 }

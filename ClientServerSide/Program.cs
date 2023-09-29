@@ -82,6 +82,14 @@ namespace ClientServer
                 // Send a response back to the client
                 writer.WriteLine("Upload successful");
             }
+            else if (messageType == "HelpRequest")
+            {
+                var helperIp = reader.ReadLine();
+                var helperPort = reader.ReadLine();
+
+                Console.WriteLine($"Received a help from IP: {helperIp} and Port: {helperPort}.");
+                writer.WriteLine("Yes, I need help!");
+            }
 
             client.Close();
         }

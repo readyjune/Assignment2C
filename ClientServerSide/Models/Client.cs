@@ -12,5 +12,6 @@ namespace ClientServerSide.Models
         public string? IPAddress { get; set; }
         public int Port { get; set; }
         public string? NeedHelp { get; set; }
+
     }
 }
