@@ -59,49 +59,42 @@ namespace WebAPI.Controllers
             return NoContent();
         }
 
-        // POST: api/Clients/{id}/jobCompleted
-        [HttpPost("{id}/jobCompleted")]
-        public async Task<ActionResult<Client>> JobCompleted(int id)
+        [HttpPut("update-need-help")]
+        public async Task<IActionResult> UpdateClientNeedHelp([FromBody] Client clientUpdate)
         {
-            var client = await _context.Clients.FindAsync(id);
-            if (client == null)
+            try
             {
-                return NotFound();
+                // Find the client based on IPAddress and Port
+                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                if (client == null)
+                {
+                    Console.WriteLine("Client not found."); // Log client not found
+                    return NotFound();
+                }
+
+                // Update the 'NeedHelp' property based on the request data
+                client.NeedHelp = clientUpdate.NeedHelp;
+
+                _context.Entry(client).State = EntityState.Modified;
+
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine("NeedHelp updated successfully."); // Log success
+
+                return NoContent();
             }
-
-            client.JobsCompleted += 1;
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating 'NeedHelp' property: {ex.Message}");
+                return StatusCode(500, "Internal server error"); // Log and return a 500 status code on error
+            }
         }
 
-        // POST: api/Clients/{id}/AssignJob
-        [HttpPost("{id}/AssignJob")]
-        public async Task<ActionResult<Job>> AssignJob(int id, Job job)
-        {
-            var client = await _context.Clients.FindAsync(id);
-            if (client == null)
-            {
-                return NotFound();
-            }
 
-            if (client.IsBusy)
-            {
-                return BadRequest("Client is currently busy.");
-            }
 
-            // You can add additional validations here if needed
 
-            job.ClientId = id;
-            _context.Jobs.Add(job);
-            await _context.SaveChangesAsync();
 
-            client.IsBusy = true;
-            await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(AssignJob), new { id = job.Id }, job);
-        }
-
-     
     }
 }

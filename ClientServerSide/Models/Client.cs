@@ -11,8 +11,6 @@ namespace ClientServerSide.Models
         public int Id { get; set; }
         public string? IPAddress { get; set; }
         public int Port { get; set; }
-        public int JobsCompleted { get; set; }
-        public bool IsBusy { get; set; }
-        public double ProgressValue { get; set; }
+        public string? NeedHelp { get; set; }
     }
 }

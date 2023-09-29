@@ -92,10 +92,15 @@ namespace Client
             }
         }
 
-        private void SubmitButton_Click(object sender, RoutedEventArgs e)
+        private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
             // Send the filename and code to the server
             SendToServer("Upload", uploadedPythonFileName, PythonCodeInput.Text);
+
+            Console.WriteLine("Before updating");
+            // Update the 'NeedHelp' property after uploading the Python file
+            await _clientApiService.UpdateClientNeedHelpAsync(providedIPAddress, providedPort);
+            Console.WriteLine("After updating");
         }
 
         private void SendToServer(string messageType, string firstData, string secondData)

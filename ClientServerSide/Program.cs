@@ -65,8 +65,7 @@ namespace ClientServer
                 var port = reader.ReadLine();
                 Console.WriteLine($"IP {ip} and port {port} is logged in.");
 
-                // Display the list of all clients
-                //await DisplayAllClients(); //Issue code
+              
 
                 // Send a response back to the client
                 writer.WriteLine("Connection successful");
@@ -85,28 +84,6 @@ namespace ClientServer
             }
 
             client.Close();
-        }
-
-
-        private static async Task<List<Client>> FetchAllClientsFromAPI()
-        {
-            var httpClient = new HttpClient();
-            var response = await httpClient.GetAsync($"http://localhost:{_port}/api/Clients");
-            if (response.IsSuccessStatusCode)
-            {
-                var content = await response.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<List<Client>>(content);
-            }
-            return new List<Client>();
-        }
-        private static async Task DisplayAllClients()
-        {
-            var clients = await FetchAllClientsFromAPI();
-            Console.WriteLine("All Clients:");
-            foreach (var client in clients)
-            {
-                Console.WriteLine($"IP: {client.IPAddress}, Port: {client.Port}");
-            }
         }
 
 

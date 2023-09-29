@@ -10,7 +10,7 @@ namespace WebAPI.Data
         }
 
         public DbSet<Client> Clients { get; set; }
-        public DbSet<Job> Jobs { get; set; }
+       
 
     }
 }
