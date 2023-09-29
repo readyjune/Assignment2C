@@ -31,6 +31,19 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
+
+            OpenDialog openDialog = new OpenDialog();
+
+            if (openDialog.ShowDialog() == true)
+            {
+                providedIPAddress = openDialog.IPAddress;
+                providedPort = openDialog.Port;
+            }
+            else
+            {
+                // Close the MainWindow if the user cancels the OpenDialog or doesn't provide valid input
+                this.Close();
+            }
         }
         private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
         {
