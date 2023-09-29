@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32;
+﻿using ClientServer.Services;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,22 +28,41 @@ namespace Client
         private string uploadedPythonFileName;
         private string providedIPAddress;
         private int providedPort;
+        private readonly ClientApiService _clientApiService;
 
         public MainWindow()
         {
             InitializeComponent();
+            _clientApiService = new ClientApiService("http://localhost:5074/");
 
+            // Attach the Loaded event to call InitializeAsync method
+            this.Loaded += async (sender, e) => await InitializeAsync();
+        }
+
+        private async Task InitializeAsync()
+        {
             OpenDialog openDialog = new OpenDialog();
 
             if (openDialog.ShowDialog() == true)
             {
                 providedIPAddress = openDialog.IPAddress;
                 providedPort = openDialog.Port;
+
+                // Register the client in the WebAPI server
+                try
+                {
+                    await _clientApiService.RegisterClientAsync(providedIPAddress, providedPort);
+                    MessageBox.Show("Client registered successfully!");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error registering client: " + ex.Message);
+                    this.Close();  // Close the MainWindow if registration fails
+                }
             }
             else
             {
-                // Close the MainWindow if the user cancels the OpenDialog or doesn't provide valid input
-                this.Close();
+                this.Close();  // Close the MainWindow if the user cancels the OpenDialog or doesn't provide valid input
             }
         }
         private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
