@@ -11,71 +11,52 @@ namespace ClientServer
 {
     internal class Program
     {
+        private static TcpListener _listener;
+        private const int Port = 12345;
+
         static void Main(string[] args)
         {
-            int port = 12345;  // You can choose any available port
-            TcpListener server = null;
+            StartServer();
+        }
 
-            try
+        private static void StartServer()
+        {
+            _listener = new TcpListener(IPAddress.Any, Port);
+            _listener.Start();
+
+            Console.WriteLine($"Server started on port {Port}. Waiting for client connections...");
+
+            while (true)
             {
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");  // Listen on localhost
-                server = new TcpListener(localAddr, port);
-                server.Start();
-
-                Console.WriteLine("Server started...");
-
-                while (true)
-                {
-                    Console.WriteLine("Waiting for a connection...");
-                    TcpClient client = server.AcceptTcpClient();
-                    Console.WriteLine("Connected!");
-
-                    NetworkStream stream = client.GetStream();
-                    StreamReader reader = new StreamReader(stream);
-                    StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
-
-                    string message = reader.ReadLine();
-
-                    switch (message)
-                    {
-                        case "Hello":
-                            writer.WriteLine("Hello Client!");
-                            break;
-
-                        case "Upload":
-                            string fileName = reader.ReadLine();
-                            string fileContent = reader.ReadLine();
-                            File.WriteAllText($"./{fileName}", fileContent);
-                            writer.WriteLine("File uploaded successfully!");
-
-                            // Print the uploaded filename and its content
-                            Console.WriteLine($"Received file: {fileName}");
-                            Console.WriteLine("File Content:");
-                            Console.WriteLine("--------------");
-                            Console.WriteLine(fileContent);
-                            Console.WriteLine("--------------");
-                            break;
-
-                        case "Goodbye":
-                            writer.WriteLine("Goodbye Client!");
-                            break;
-
-                        default:
-                            writer.WriteLine("Unknown command!");
-                            break;
-                    }
-
-                    client.Close();
-                }
+                var client = _listener.AcceptTcpClient();
+                HandleClient(client);
             }
-            catch (SocketException e)
+        }
+
+        private static void HandleClient(TcpClient client)
+        {
+            var stream = client.GetStream();
+            var reader = new StreamReader(stream);
+
+            var messageType = reader.ReadLine();
+            if (messageType == "Connection")
             {
-                Console.WriteLine($"SocketException: {e}");
+                var ip = reader.ReadLine();
+                var port = reader.ReadLine();
+                Console.WriteLine($"IP {ip} and port {port} is logged in.");
             }
-            finally
+            else if (messageType == "Upload")
             {
-                server?.Stop();
+                var filename = reader.ReadLine();
+                var code = reader.ReadLine();
+                Console.WriteLine($"Received Python code from file: {filename}");
+                Console.WriteLine("----- Python Code -----");
+                Console.WriteLine(code);
+                Console.WriteLine("----- End of Python Code -----");
             }
+
+            client.Close();
         }
     }
 }
+

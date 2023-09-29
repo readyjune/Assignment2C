@@ -16,7 +16,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-
 namespace Client
 {
     /// <summary>
@@ -33,7 +32,7 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
-            _clientApiService = new ClientApiService("http://localhost:5074/");
+            _clientApiService = new ClientApiService("http://localhost:5074/api");
 
             // Attach the Loaded event to call InitializeAsync method
             this.Loaded += async (sender, e) => await InitializeAsync();
@@ -47,6 +46,9 @@ namespace Client
             {
                 providedIPAddress = openDialog.IPAddress;
                 providedPort = openDialog.Port;
+
+                // Send IP and port to the server
+                SendToServer("Connection", providedIPAddress, providedPort.ToString());
 
                 // Register the client in the WebAPI server
                 try
@@ -65,6 +67,7 @@ namespace Client
                 this.Close();  // Close the MainWindow if the user cancels the OpenDialog or doesn't provide valid input
             }
         }
+
         private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -79,7 +82,7 @@ namespace Client
                     uploadedPythonFileName = System.IO.Path.GetFileName(uploadedPythonFilePath);
                     var pythonCodeContent = File.ReadAllText(uploadedPythonFilePath);
                     PythonCodeInput.Text = pythonCodeContent;  // Set the TextBox to the actual Python code
-                    
+
                 }
                 catch (Exception ex)
                 {
@@ -87,7 +90,14 @@ namespace Client
                 }
             }
         }
+
         private void SubmitButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Send the filename and code to the server
+            SendToServer("Upload", uploadedPythonFileName, PythonCodeInput.Text);
+        }
+
+        private void SendToServer(string messageType, string firstData, string secondData)
         {
             try
             {
@@ -98,9 +108,9 @@ namespace Client
                     StreamReader reader = new StreamReader(stream);
 
                     // Start the communication
-                    writer.WriteLine("Upload");
-                    writer.WriteLine(uploadedPythonFileName);
-                    writer.WriteLine(PythonCodeInput.Text);
+                    writer.WriteLine(messageType);
+                    writer.WriteLine(firstData);
+                    writer.WriteLine(secondData);
 
                     // Read the response from the server
                     string response = reader.ReadLine();
@@ -109,7 +119,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show("An error occurred while uploading the file: " + ex.Message);
+                MessageBox.Show("An error occurred while communicating with the server: " + ex.Message);
             }
         }
     }
