@@ -45,7 +45,7 @@ namespace Client
             if (openDialog.ShowDialog() == true)
             {
                 providedIPAddress = openDialog.IPAddress;
-                providedPort = openDialog.Port;
+                providedPort = openDialog.Port; // Get the port from user input
 
                 // Send IP and port to the server
                 SendToServer("Connection", providedIPAddress, providedPort.ToString());
@@ -67,6 +67,7 @@ namespace Client
                 this.Close();  // Close the MainWindow if the user cancels the OpenDialog or doesn't provide valid input
             }
         }
+
 
         private void BrowsePythonCodeButton_Click(object sender, RoutedEventArgs e)
         {
@@ -101,7 +102,7 @@ namespace Client
         {
             try
             {
-                using (TcpClient client = new TcpClient("127.0.0.1", 12345))  // Connect to the server
+                using (TcpClient client = new TcpClient(providedIPAddress, providedPort))  // Connect to the server using providedIPAddress and providedPort
                 {
                     NetworkStream stream = client.GetStream();
                     StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
@@ -122,5 +123,6 @@ namespace Client
                 MessageBox.Show("An error occurred while communicating with the server: " + ex.Message);
             }
         }
+
     }
 }
