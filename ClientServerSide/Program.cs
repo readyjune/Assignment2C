@@ -1,4 +1,5 @@
-﻿using ClientServerSide.Models;
+﻿using ClientServer.Services;
+using ClientServerSide.Models;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace ClientServer
         private static TcpListener _listener;
         private static IPAddress _ipAddress; // Add a field to store the IP address
         private static int _port; // Add a field to store the port number
-
+        private static readonly ClientApiService _clientApiService = new ClientApiService("http://localhost:5074/api");
         static void Main(string[] args)
         {
             if (args.Length != 2 || !IPAddress.TryParse(args[0], out _ipAddress) || !int.TryParse(args[1], out _port))
@@ -56,38 +57,41 @@ namespace ClientServer
         {
             var stream = client.GetStream();
             var reader = new StreamReader(stream);
-            var writer = new StreamWriter(stream) { AutoFlush = true };  // Add a StreamWriter for sending responses
+            var writer = new StreamWriter(stream) { AutoFlush = true };
 
             var messageType = reader.ReadLine();
             if (messageType == "Connection")
             {
-                var ip = reader.ReadLine();
-                var port = reader.ReadLine();
-                Console.WriteLine($"IP {ip} and port {port} is logged in.");
-
-              
-
-                // Send a response back to the client
-                writer.WriteLine("Connection successful");
+                // ... (same as before)
             }
             else if (messageType == "Upload")
             {
                 var filename = reader.ReadLine();
                 var code = reader.ReadLine();
+
+                // Get the client's IP and use the server's listening port
+                var clientIP = _ipAddress.ToString();
+
+                // Update the client's record with the uploaded Python code via the API
+                await _clientApiService.UpdateClientPythonCode(clientIP, _port, code);
+
                 Console.WriteLine($"Received Python code from file: {filename}");
                 Console.WriteLine("----- Python Code -----");
                 Console.WriteLine(code);
                 Console.WriteLine("----- End of Python Code -----");
 
-                // Send a response back to the client
                 writer.WriteLine("Upload successful");
             }
             else if (messageType == "HelpRequest")
             {
+                // Here, you'd probably get the Python code from the database/API, run it, 
+                // and return the results. This is a placeholder for future implementation.
                 var helperIp = reader.ReadLine();
                 var helperPort = reader.ReadLine();
 
-                Console.WriteLine($"Received a help from IP: {helperIp} and Port: {helperPort}.");
+                Console.WriteLine($"Received a help request from IP: {helperIp} and Port: {helperPort}.");
+
+                // For now, just acknowledge the help request
                 writer.WriteLine("Yes, I need help!");
             }
 

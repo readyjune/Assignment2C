@@ -173,8 +173,8 @@ namespace Client
 
         private async void SubmitButton_Click(object sender, RoutedEventArgs e)
         {
-            // Send the filename and code to the server
-            SendToServer("Upload", uploadedPythonFileName, PythonCodeInput.Text);
+            // Send the filename, code, and the actual Python code to the server
+            SendToServer("Upload", uploadedPythonFileName, PythonCodeInput.Text, File.ReadAllText(uploadedPythonFilePath));
 
             Console.WriteLine("Before updating");
             // Update the 'NeedHelp' property after uploading the Python file
@@ -182,7 +182,7 @@ namespace Client
             Console.WriteLine("After updating");
         }
 
-        private void SendToServer(string messageType, string firstData, string secondData)
+        private void SendToServer(string messageType, string firstData, string secondData, string pythonCode = null)
         {
             try
             {
@@ -196,6 +196,12 @@ namespace Client
                     writer.WriteLine(messageType);
                     writer.WriteLine(firstData);
                     writer.WriteLine(secondData);
+
+                    // If Python code is provided, send it to the server
+                    if (!string.IsNullOrEmpty(pythonCode))
+                    {
+                        writer.WriteLine(pythonCode);
+                    }
 
                     // Read the response from the server
                     string response = reader.ReadLine();

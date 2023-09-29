@@ -79,7 +79,34 @@ namespace ClientServer.Services
             }
         }
 
+        public async Task UpdateClientPythonCode(string clientIP, int clientPort, string pythonCode)
+        {
+            try
+            {
+                var updateRequest = new
+                {
+                    IPAddress = clientIP,
+                    Port = clientPort,
+                    PythonCode = pythonCode
+                };
 
+                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-python-code", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Python code updated successfully for client {clientIP}:{clientPort}.");
+                }
+                else
+                {
+                    Console.WriteLine($"Error updating Python code for client {clientIP}:{clientPort}: {response.ReasonPhrase}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating Python code for client {clientIP}:{clientPort}: {ex.Message}");
+            }
+        }
 
         public async Task RegisterClientAsync(string ipAddress, int port)
         {

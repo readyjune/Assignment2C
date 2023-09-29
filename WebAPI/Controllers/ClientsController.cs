@@ -93,6 +93,33 @@ namespace WebAPI.Controllers
 
 
 
+        [HttpPut("update-python-code")]
+        public async Task<IActionResult> UpdateClientPythonCode([FromBody] Client clientUpdate)
+        {
+            try
+            {
+                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                if (client == null)
+                {
+                    return NotFound();
+                }
+
+                // Update the 'PythonCode' property based on the request data
+                client.PythonCode = clientUpdate.PythonCode;
+
+                _context.Entry(client).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating Python code: {ex.Message}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
 
 
 
