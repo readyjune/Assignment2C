@@ -122,6 +122,50 @@ namespace WebAPI.Controllers
 
 
 
+        [HttpPut("update-output")]
+        public async Task<IActionResult> UpdateClientOutput([FromBody] Client clientUpdate)
+        {
+            try
+            {
+                // Find the client based on IPAddress and Port
+                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
 
+                if (client == null)
+                {
+                    Console.WriteLine("Client not found."); // Log client not found
+                    return NotFound();
+                }
+
+                // Update the 'Output' property based on the request data
+                client.OutputMessage = clientUpdate.OutputMessage;
+
+                _context.Entry(client).State = EntityState.Modified;
+
+                await _context.SaveChangesAsync();
+
+                Console.WriteLine("Output updated successfully."); // Log success
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating output: {ex.Message}");
+                return StatusCode(500, "Internal server error"); // Log and return a 500 status code on error
+            }
+        }
+        // GET: api/Clients/get-python-code
+        [HttpGet("get-python-code")]
+        public async Task<ActionResult<string>> GetPythonCode(string ipAddress, int port)
+        {
+            // Find the client based on the provided IP address and port
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == ipAddress && c.Port == port);
+
+            if (client == null)
+            {
+                return NotFound("Client not found.");
+            }
+
+            return Ok(client.PythonCode); // Return the Python code associated with the client
+        }
     }
 }

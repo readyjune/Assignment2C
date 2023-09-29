@@ -17,6 +17,9 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using IronPython.Hosting;
+using IronPython.Runtime;
+using System.Net.Http;
 
 namespace Client
 {
@@ -62,17 +65,110 @@ namespace Client
                         // Skip this iteration if the client is the current client (i.e., has the same IP and port)
                         continue;
                     }
-
+                    Console.WriteLine("jinwoo");
                     if (!string.IsNullOrEmpty(client.NeedHelp) && client.NeedHelp.Trim().Equals("Yes", StringComparison.OrdinalIgnoreCase))
                     {
-                        // Send a message to that client
-                        SendHelpMessageAsync(client.IPAddress, client.Port);
+                        // Retrieve Python code from the database for the client (A)
+                        string pythonCode = await RetrievePythonCodeFromApiAsync(client.IPAddress, client.Port); // Await here
+
+                        // Execute the Python code and capture the output
+                        string output = ExecutePythonCode(pythonCode);
+
+                        // Send the output back to the original client (A)
+                        SendOutputToClient(client.IPAddress, client.Port, output);
+
+                        // Update the 'NeedHelp' status of the client to 'No' after sending the help message
+                        await _clientApiService.UpdateClientNoHelpAsync(client.IPAddress, client.Port);
+                        Console.WriteLine($"Updated NeedHelp status to 'No' for {client.IPAddress}:{client.Port}");
                     }
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during monitoring: {ex.Message}");
+            }
+        }
+        // Function to execute Python code and capture the output
+        private string ExecutePythonCode(string pythonCode)
+        {
+            try
+            {
+                var engine = Python.CreateEngine();
+                var scope = engine.CreateScope();
+                var output = new MemoryStream();
+                engine.Runtime.IO.SetOutput(output, Encoding.UTF8);
+
+                // Execute the Python code
+                engine.Execute(pythonCode, scope);
+
+                // Capture the output
+                output.Seek(0, SeekOrigin.Begin);
+                var reader = new StreamReader(output);
+                var capturedOutput = reader.ReadToEnd();
+                return capturedOutput;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error executing Python code: {ex.Message}");
+                return $"Error: {ex.Message}";
+            }
+        }
+        // Function to retrieve Python code from the database for a specific client using an API
+        private async Task<string> RetrievePythonCodeFromApiAsync(string ipAddress, int port)
+        {
+            try
+            {
+                // Replace 'your-api-url-here' with the actual URL of your API endpoint
+                string apiUrl = $"http://localhost:5074/api/Clients/get-python-code?ipAddress={ipAddress}&port={port}";
+
+                using (HttpClient client = new HttpClient())
+                {
+                    HttpResponseMessage response = await client.GetAsync(apiUrl);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        // Read the response content (Python code) from the API
+                        string pythonCode = await response.Content.ReadAsStringAsync();
+                        return pythonCode;
+                    }
+                    else
+                    {
+                        // Handle the case where the API request fails (e.g., client not found)
+                        Console.WriteLine($"API request failed with status code: {response.StatusCode}");
+                        return null;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving Python code from API: {ex.Message}");
+                return null;
+            }
+        }
+
+
+        // Function to send the output back to the original client (A)
+        private void SendOutputToClient(string targetIPAddress, int targetPort, string output)
+        {
+            try
+            {
+                using (TcpClient client = new TcpClient(targetIPAddress, targetPort))
+                {
+                    NetworkStream stream = client.GetStream();
+                    StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
+
+                    // Send the message type first
+                    writer.WriteLine("Output");
+
+                    // Send the output of the executed Python code
+                    writer.WriteLine(output);
+
+                    Console.WriteLine($"Sent output to {targetIPAddress}:{targetPort}.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending output to {targetIPAddress}:{targetPort}: {ex.Message}");
             }
         }
         private void SendHelpRequestToServer(string targetIPAddress, int targetPort)

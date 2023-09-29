@@ -151,6 +151,34 @@ namespace ClientServer.Services
             }
         }
 
+        public async Task UpdateClientOutputAsync(string ipAddress, int port, string output)
+        {
+            try
+            {
+                var updateRequest = new
+                {
+                    IPAddress = ipAddress,
+                    Port = port,
+                    OutputMessage = output
+                };
+
+                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
+                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-output", content);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Output updated successfully for client {ipAddress}:{port}.");
+                }
+                else
+                {
+                    Console.WriteLine($"Error updating output for client {ipAddress}:{port}: {response.ReasonPhrase}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating output for client {ipAddress}:{port}: {ex.Message}");
+            }
+        }
 
     }
 }

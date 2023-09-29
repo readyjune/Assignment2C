@@ -94,6 +94,18 @@ namespace ClientServer
                 // For now, just acknowledge the help request
                 writer.WriteLine("Yes, I need help!");
             }
+            else if (messageType == "Output")
+            {
+                var clientIP = _ipAddress.ToString();
+                
+                var output = reader.ReadLine();
+
+                // Store the output in the client's record
+                await _clientApiService.UpdateClientOutputAsync(clientIP, _port, output);
+
+                Console.WriteLine($"Received output from IP: {clientIP} and Port: {_port}.");
+            }
+
 
             client.Close();
         }
