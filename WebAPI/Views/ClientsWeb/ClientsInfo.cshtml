@@ -1,0 +1,34 @@
+﻿@model IEnumerable<Client>
+
+<h2>Connected Clients</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>IP Address</th>
+            <th>Port</th>
+            <th>Need Help</th>
+            <th>Python Code</th>
+            <th>Output Message</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var client in Model)
+        {
+            <tr>
+                <td>@client.IPAddress</td>
+                <td>@client.Port</td>
+                <td>@client.NeedHelp</td>
+                <td>@client.PythonCode</td>
+                <td>@client.OutputMessage</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<script>
+    // Refresh the page every 1 minute
+    setTimeout(function(){
+       location.reload();
+    }, 60000);
+</script>
