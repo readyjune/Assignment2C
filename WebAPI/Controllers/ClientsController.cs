@@ -43,11 +43,11 @@ namespace WebAPI.Controllers
             return CreatedAtAction(nameof(GetClients), new { id = client.Id }, client);
         }
 
-        // DELETE: api/Clients/{id}
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Client>> DeleteClient(int id)
+        // DELETE: api/Clients
+        [HttpDelete]
+        public async Task<ActionResult<Client>> DeleteClient(string ipAddress, int port)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == ipAddress && c.Port == port);
             if (client == null)
             {
                 return NotFound();
@@ -167,5 +167,42 @@ namespace WebAPI.Controllers
 
             return Ok(client.PythonCode); // Return the Python code associated with the client
         }
+
+        [HttpPut("update-jobs-completed")]
+        public async Task<IActionResult> UpdateJobsCompleted([FromBody] Client clientUpdate)
+        {
+            try
+            {
+                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+                if (client == null)
+                {
+                    return NotFound();
+                }
+
+                client.JobsCompleted = clientUpdate.JobsCompleted;
+
+                _context.Entry(client).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating JobsCompleted: {ex.Message}");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+        // GET: api/Clients/client-details
+        [HttpGet("client-details")]
+        public async Task<ActionResult<Client>> GetClientDetails(string ipAddress, int port)
+        {
+            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == ipAddress && c.Port == port);
+            if (client == null)
+            {
+                return NotFound("Client not found.");
+            }
+            return Ok(client);
+        }
+
     }
 }

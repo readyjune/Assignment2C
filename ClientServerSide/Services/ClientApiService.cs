@@ -180,5 +180,77 @@ namespace ClientServer.Services
             }
         }
 
+        public async Task DeleteClientAsync(string ipAddress, int port)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"{_baseApiUrl}/clients?ipAddress={ipAddress}&port={port}");
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException($"Error deleting client {ipAddress}:{port}: {response.ReasonPhrase}");
+                }
+                else
+                {
+                    Console.WriteLine($"Client {ipAddress}:{port} deleted successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting client {ipAddress}:{port}: {ex.Message}");
+            }
+        }
+
+        public async Task IncrementJobsCompletedAsync(string ipAddress, int port)
+        {
+            try
+            {
+                var clientToUpdate = await _httpClient.GetAsync($"{_baseApiUrl}/Clients?ipAddress={ipAddress}&port={port}");
+                
+                
+
+                if (clientToUpdate.IsSuccessStatusCode)
+                {
+                    var responseBody = await clientToUpdate.Content.ReadAsStringAsync();
+                    Console.WriteLine($"Response Body from /Clients endpoint: {responseBody}");
+
+                    // Deserialize into a list of Client objects
+                    var clients = JsonConvert.DeserializeObject<List<Client>>(responseBody);
+
+                    // Find the appropriate client based on ipAddress and port
+                    var client = clients.FirstOrDefault(c => c.IPAddress == ipAddress && c.Port == port);
+
+                    if (client == null)
+                    {
+                        Console.WriteLine($"No client found with IP {ipAddress} and port {port}.");
+                        return;
+                    }
+
+                    client.JobsCompleted++;
+
+                    var content = new StringContent(JsonConvert.SerializeObject(client), Encoding.UTF8, "application/json");
+                    var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-jobs-completed", content);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"JobsCompleted incremented for client {ipAddress}:{port}.");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Error incrementing JobsCompleted for client {ipAddress}:{port}: {response.ReasonPhrase}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"Error fetching client {ipAddress}:{port} for incrementing: {clientToUpdate.ReasonPhrase}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error incrementing JobsCompleted for client {ipAddress}:{port}: {ex.Message}");
+            }
+        }
+
+
     }
 }

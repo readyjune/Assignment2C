@@ -32,6 +32,9 @@ namespace WebAPI.Migrations
                     b.Property<string>("IPAddress")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("JobsCompleted")
+                        .HasColumnType("int");
+
                     b.Property<string>("NeedHelp")
                         .HasColumnType("nvarchar(max)");
 

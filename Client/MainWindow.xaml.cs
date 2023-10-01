@@ -37,6 +37,10 @@ namespace Client
         public MainWindow()
         {
             InitializeComponent();
+
+            // Attach the Closed event handler
+            this.Closed += MainWindow_Closed;
+
             _clientApiService = new ClientApiService("http://localhost:5074/api");
 
             // Attach the Loaded event to call InitializeAsync method
@@ -44,6 +48,12 @@ namespace Client
 
             StartMonitoring();
         }
+
+        private async void MainWindow_Closed(object sender, EventArgs e)
+        {
+            await _clientApiService.DeleteClientAsync(providedIPAddress, providedPort);
+        }
+
         private void StartMonitoring()
         {
             _monitoringTimer = new DispatcherTimer();
@@ -77,9 +87,14 @@ namespace Client
                         // Send the output back to the original client (A)
                         SendOutputToClient(client.IPAddress, client.Port, output);
 
+
                         // Update the 'NeedHelp' status of the client to 'No' after sending the help message
                         await _clientApiService.UpdateClientNoHelpAsync(client.IPAddress, client.Port);
                         Console.WriteLine($"Updated NeedHelp status to 'No' for {client.IPAddress}:{client.Port}");
+
+                        // Increment the JobsCompleted counter for the helping client (this instance)
+                        await _clientApiService.IncrementJobsCompletedAsync(providedIPAddress, providedPort);
+
                     }
                 }
             }
@@ -171,48 +186,8 @@ namespace Client
                 Console.WriteLine($"Error sending output to {targetIPAddress}:{targetPort}: {ex.Message}");
             }
         }
-        private void SendHelpRequestToServer(string targetIPAddress, int targetPort)
-        {
-            try
-            {
-                using (TcpClient client = new TcpClient(targetIPAddress, targetPort))
-                {
-                    NetworkStream stream = client.GetStream();
-                    StreamWriter writer = new StreamWriter(stream) { AutoFlush = true };
 
-                    // Send the message type first
-                    writer.WriteLine("HelpRequest");
 
-                    // Then send the source client's IP and port (i.e., this client's IP and port)
-                    writer.WriteLine(providedIPAddress); // this client's IP
-                    writer.WriteLine(providedPort.ToString()); // this client's port
-
-                    // Then send the actual help request message
-                    writer.WriteLine("Do you need help?");
-
-                    Console.WriteLine($"Sent help message to {targetIPAddress}:{targetPort}.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error sending help message to {targetIPAddress}:{targetPort}: {ex.Message}");
-            }
-        }
-
-        private async Task SendHelpMessageAsync(string ipAddress, int port)
-        {
-            try
-            {
-                SendHelpRequestToServer(ipAddress, port);
-                // Update the 'NeedHelp' status of the client to 'No' after sending the help message
-                await _clientApiService.UpdateClientNoHelpAsync(ipAddress, port);
-                Console.WriteLine($"Updated NeedHelp status to 'No' for {ipAddress}:{port}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error sending help message to {ipAddress}:{port}: {ex.Message}");
-            }
-        }
         private async Task InitializeAsync()
         {
             OpenDialog openDialog = new OpenDialog();

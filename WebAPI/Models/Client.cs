@@ -11,6 +11,7 @@ namespace WebAPI.Models
 
         public string? PythonCode { get; set; } // To store the Python code
         public string? OutputMessage { get; set; } // To store the output after execution
+        public int JobsCompleted { get; set; } = 0;
     }
 
 }

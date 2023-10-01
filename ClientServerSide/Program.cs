@@ -30,6 +30,9 @@ namespace ClientServer
         private static readonly ClientApiService _clientApiService = new ClientApiService("http://localhost:5074/api");
         static void Main(string[] args)
         {
+            // Attach the ProcessExit event handler
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+
             if (args.Length != 2 || !IPAddress.TryParse(args[0], out _ipAddress) || !int.TryParse(args[1], out _port))
             {
                 Console.WriteLine("Usage: ClientServerSide <IP Address> <Port>");
@@ -38,6 +41,13 @@ namespace ClientServer
 
             StartServer();
         }
+
+        private static async void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        {
+            var clientApiService = new ClientApiService("http://localhost:5074/api");
+            await clientApiService.DeleteClientAsync(_ipAddress.ToString(), _port);
+        }
+
 
         private static void StartServer()
         {

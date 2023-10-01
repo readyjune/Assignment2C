@@ -11,7 +11,7 @@ using WebAPI.Data;
 namespace WebAPI.Migrations
 {
     [DbContext(typeof(ClientContext))]
-    [Migration("20230929102814_JobsCompleted")]
+    [Migration("20231001132630_JobsCompleted")]
     partial class JobsCompleted
     {
         /// <inheritdoc />
@@ -35,11 +35,20 @@ namespace WebAPI.Migrations
                     b.Property<string>("IPAddress")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("JobsCompleted")
+                    b.Property<int>("JobsCompleted")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NeedHelp")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OutputMessage")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Port")
                         .HasColumnType("int");
+
+                    b.Property<string>("PythonCode")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
