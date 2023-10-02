@@ -9,6 +9,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using WebAPI.Models;
+using Client = ClientServerSide.Models.Client;
 
 // So if you do run without debug for ClientServerSide, the port number will be 12345;
 // To run different instance of ClientServerSide to pretend different computer,
@@ -72,7 +74,14 @@ namespace ClientServer
             var messageType = reader.ReadLine();
             if (messageType == "Connection")
             {
-                // ... (same as before)
+                var ip = reader.ReadLine();
+                var port = int.Parse(reader.ReadLine());
+                Console.WriteLine($"IP {ip} and port {port} log in successfully.");
+
+                // Register the client in the database using the API
+                await _clientApiService.RegisterClientAsync(ip, port);
+
+                writer.WriteLine("Connection successful");
             }
             else if (messageType == "Upload")
             {

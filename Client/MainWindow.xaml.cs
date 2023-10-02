@@ -57,7 +57,7 @@ namespace Client
         private void StartMonitoring()
         {
             _monitoringTimer = new DispatcherTimer();
-            _monitoringTimer.Interval = TimeSpan.FromSeconds(15);
+            _monitoringTimer.Interval = TimeSpan.FromMinutes(1);
             _monitoringTimer.Tick += CheckClientsStatus;
             _monitoringTimer.Start();
         }
@@ -75,9 +75,11 @@ namespace Client
                         // Skip this iteration if the client is the current client (i.e., has the same IP and port)
                         continue;
                     }
-                    Console.WriteLine("jinwoo");
+                    
                     if (!string.IsNullOrEmpty(client.NeedHelp) && client.NeedHelp.Trim().Equals("Yes", StringComparison.OrdinalIgnoreCase))
                     {
+
+
                         // Retrieve Python code from the database for the client (A)
                         string pythonCode = await RetrievePythonCodeFromApiAsync(client.IPAddress, client.Port); // Await here
 
@@ -196,7 +198,7 @@ namespace Client
             {
                 providedIPAddress = openDialog.IPAddress;
                 providedPort = openDialog.Port; // Get the port from user input
-
+                
                 // Send IP and port to the server
                 SendToServer("Connection", providedIPAddress, providedPort.ToString());
 
