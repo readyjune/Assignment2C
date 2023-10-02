@@ -122,7 +122,7 @@ namespace ClientServer
                 // Store the output in the client's record
                 await _clientApiService.UpdateClientOutputAsync(clientIP, _port, output);
 
-                Console.WriteLine($"Received output from IP: {clientIP} and Port: {_port}.");
+                //Console.WriteLine($"Received output from IP: {clientIP} and Port: {_port}.");
             }
 
 

@@ -12,7 +12,7 @@ namespace WebAPI.Controllers
     public class ClientsController : ControllerBase
     {
         private readonly ClientContext _context;
-
+        private readonly object _lock = new object();  // Lock for concurrency control
         public ClientsController(ClientContext context)
         {
             _context = context;
@@ -30,15 +30,17 @@ namespace WebAPI.Controllers
         [HttpPost("Register")]
         public async Task<ActionResult<Client>> RegisterClient(Client client)
         {
-            // Check if the IP and Port are already registered
-            var existingClient = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == client.IPAddress && c.Port == client.Port);
-            if (existingClient != null)
+            lock (_lock)
             {
-                return BadRequest("IP and Port combination already registered.");
-            }
+                var existingClient = _context.Clients.FirstOrDefault(c => c.IPAddress == client.IPAddress && c.Port == client.Port);
+                if (existingClient != null)
+                {
+                    return BadRequest("IP and Port combination already registered.");
+                }
 
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
+                _context.Clients.Add(client);
+                _context.SaveChanges();
+            }
 
             return CreatedAtAction(nameof(GetClients), new { id = client.Id }, client);
         }
@@ -47,14 +49,17 @@ namespace WebAPI.Controllers
         [HttpDelete]
         public async Task<ActionResult<Client>> DeleteClient(string ipAddress, int port)
         {
-            var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == ipAddress && c.Port == port);
-            if (client == null)
+            lock (_lock)
             {
-                return NotFound();
-            }
+                var client = _context.Clients.FirstOrDefault(c => c.IPAddress == ipAddress && c.Port == port);
+                if (client == null)
+                {
+                    return NotFound();
+                }
 
-            _context.Clients.Remove(client);
-            await _context.SaveChangesAsync();
+                _context.Clients.Remove(client);
+                _context.SaveChanges();
+            }
 
             return NoContent();
         }
@@ -64,30 +69,29 @@ namespace WebAPI.Controllers
         {
             try
             {
-                // Find the client based on IPAddress and Port
-                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
-
-                if (client == null)
+                lock (_lock)
                 {
-                    Console.WriteLine("Client not found."); // Log client not found
-                    return NotFound();
+                    var client = _context.Clients.FirstOrDefault(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                    if (client == null)
+                    {
+                        Console.WriteLine("Client not found.");
+                        return NotFound();
+                    }
+
+                    client.NeedHelp = clientUpdate.NeedHelp;
+
+                    _context.Entry(client).State = EntityState.Modified;
+                    _context.SaveChanges();
                 }
 
-                // Update the 'NeedHelp' property based on the request data
-                client.NeedHelp = clientUpdate.NeedHelp;
-
-                _context.Entry(client).State = EntityState.Modified;
-
-                await _context.SaveChangesAsync();
-
-                Console.WriteLine("NeedHelp updated successfully."); // Log success
-
+                Console.WriteLine("NeedHelp updated successfully.");
                 return NoContent();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating 'NeedHelp' property: {ex.Message}");
-                return StatusCode(500, "Internal server error"); // Log and return a 500 status code on error
+                return StatusCode(500, "Internal server error");
             }
         }
 
@@ -98,18 +102,20 @@ namespace WebAPI.Controllers
         {
             try
             {
-                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
-
-                if (client == null)
+                lock (_lock)
                 {
-                    return NotFound();
+                    var client = _context.Clients.FirstOrDefault(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                    if (client == null)
+                    {
+                        return NotFound();
+                    }
+
+                    client.PythonCode = clientUpdate.PythonCode;
+
+                    _context.Entry(client).State = EntityState.Modified;
+                    _context.SaveChanges();
                 }
-
-                // Update the 'PythonCode' property based on the request data
-                client.PythonCode = clientUpdate.PythonCode;
-
-                _context.Entry(client).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
 
                 return NoContent();
             }
@@ -127,30 +133,29 @@ namespace WebAPI.Controllers
         {
             try
             {
-                // Find the client based on IPAddress and Port
-                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
-
-                if (client == null)
+                lock (_lock)
                 {
-                    Console.WriteLine("Client not found."); // Log client not found
-                    return NotFound();
+                    var client = _context.Clients.FirstOrDefault(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                    if (client == null)
+                    {
+                        Console.WriteLine("Client not found.");
+                        return NotFound();
+                    }
+
+                    client.OutputMessage = clientUpdate.OutputMessage;
+
+                    _context.Entry(client).State = EntityState.Modified;
+                    _context.SaveChanges();
                 }
 
-                // Update the 'Output' property based on the request data
-                client.OutputMessage = clientUpdate.OutputMessage;
-
-                _context.Entry(client).State = EntityState.Modified;
-
-                await _context.SaveChangesAsync();
-
-                Console.WriteLine("Output updated successfully."); // Log success
-
+                Console.WriteLine("Output updated successfully.");
                 return NoContent();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error updating output: {ex.Message}");
-                return StatusCode(500, "Internal server error"); // Log and return a 500 status code on error
+                return StatusCode(500, "Internal server error");
             }
         }
         // GET: api/Clients/get-python-code
@@ -173,16 +178,20 @@ namespace WebAPI.Controllers
         {
             try
             {
-                var client = await _context.Clients.FirstOrDefaultAsync(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
-                if (client == null)
+                lock (_lock)
                 {
-                    return NotFound();
+                    var client = _context.Clients.FirstOrDefault(c => c.IPAddress == clientUpdate.IPAddress && c.Port == clientUpdate.Port);
+
+                    if (client == null)
+                    {
+                        return NotFound();
+                    }
+
+                    client.JobsCompleted = clientUpdate.JobsCompleted;
+
+                    _context.Entry(client).State = EntityState.Modified;
+                    _context.SaveChanges();
                 }
-
-                client.JobsCompleted = clientUpdate.JobsCompleted;
-
-                _context.Entry(client).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
 
                 return NoContent();
             }

@@ -13,241 +13,145 @@ namespace ClientServer.Services
 {
     public class ClientApiService
     {
+        // Singleton HttpClient
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _baseApiUrl;
 
         public ClientApiService(string baseApiUrl)
         {
             _baseApiUrl = baseApiUrl;
-        }
 
+        }
+        private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string endpoint, object? data = null)
+        {
+            var request = new HttpRequestMessage(method, $"{_baseApiUrl}/{endpoint}");
+
+            if (data != null)
+            {
+                request.Content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, "application/json");
+            }
+
+            return await _httpClient.SendAsync(request);
+        }
         public async Task UpdateClientNeedHelpAsync(string ipAddress, int port)
         {
-            try
+            var client = new Client
             {
-                var updateRequest = new
-                {
-                    IPAddress = ipAddress,
-                    Port = port,
-                    NeedHelp = "Yes"
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-need-help", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("NeedHelp updated successfully."); // Log success
-                }
-                else
-                {
-                    Console.WriteLine($"Error updating 'NeedHelp' property: {response.ReasonPhrase}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating 'NeedHelp' property: {ex.Message}");
-            }
+                IPAddress = ipAddress,
+                Port = port,
+                NeedHelp = "Yes"
+            };
+            var response = await SendAsync(HttpMethod.Put, "clients/update-need-help", client);
+            HandleResponse(response, $"Error updating 'NeedHelp' property for client {ipAddress}:{port}");
         }
 
         public async Task UpdateClientNoHelpAsync(string ipAddress, int port)
         {
-            try
+            var client = new Client
             {
-                var updateRequest = new
-                {
-                    IPAddress = ipAddress,
-                    Port = port,
-                    NeedHelp = "No" // Set NeedHelp to "No"
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-need-help", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine("NeedHelp updated to 'No' successfully."); // Log success
-                }
-                else
-                {
-                    Console.WriteLine($"Error updating 'NeedHelp' property to 'No': {response.ReasonPhrase}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating 'NeedHelp' property to 'No': {ex.Message}");
-            }
+                IPAddress = ipAddress,
+                Port = port,
+                NeedHelp = "No"
+            };
+            var response = await SendAsync(HttpMethod.Put, "clients/update-need-help", client);
+            HandleResponse(response, $"Error updating 'NeedHelp' property to 'No' for client {ipAddress}:{port}");
         }
 
         public async Task UpdateClientPythonCode(string clientIP, int clientPort, string pythonCode)
         {
-            try
+            var client = new Client
             {
-                var updateRequest = new
-                {
-                    IPAddress = clientIP,
-                    Port = clientPort,
-                    PythonCode = pythonCode
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-python-code", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Python code updated successfully for client {clientIP}:{clientPort}.");
-                }
-                else
-                {
-                    Console.WriteLine($"Error updating Python code for client {clientIP}:{clientPort}: {response.ReasonPhrase}");
-                }
+                IPAddress = clientIP,
+                Port = clientPort,
+                PythonCode = pythonCode
+            };
+            var response = await SendAsync(HttpMethod.Put, "clients/update-python-code", client);
+            HandleResponse(response, $"Error updating Python code for client {clientIP}:{clientPort}");
+        }
+        private void HandleResponse(HttpResponseMessage response, string errorMessage)
+        {
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"{errorMessage}: {response.ReasonPhrase}");
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error updating Python code for client {clientIP}:{clientPort}: {ex.Message}");
+                Console.WriteLine($"Operation was successful for client.");
             }
         }
-
         public async Task RegisterClientAsync(string ipAddress, int port)
         {
-            try
+            var client = new Client
             {
-                var client = new
-                {
-                    IPAddress = ipAddress,
-                    Port = port
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(client), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PostAsync($"{_baseApiUrl}/clients/register", content);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new InvalidOperationException($"Error registering client: {response.ReasonPhrase}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error registering client: {ex.Message}");
-            }
+                IPAddress = ipAddress,
+                Port = port
+            };
+            var response = await SendAsync(HttpMethod.Post, "clients/register", client);
+            HandleResponse(response, $"Error registering client {ipAddress}:{port}");
         }
 
         public async Task<IEnumerable<Client>> GetAllClientsAsync()
         {
-            var response = await _httpClient.GetAsync($"{_baseApiUrl}/Clients");
-            response.EnsureSuccessStatusCode();
-
-            var content = await response.Content.ReadAsStringAsync();
-            return JsonConvert.DeserializeObject<IEnumerable<Client>>(content);
+            var response = await SendAsync(HttpMethod.Get, "Clients");
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                return JsonConvert.DeserializeObject<IEnumerable<Client>>(content);
+            }
+            else
+            {
+                HandleResponse(response, "Error fetching clients.");
+                return new List<Client>(); // Return an empty list on failure
+            }
         }
 
         public async Task UnregisterClientAsync(int clientId)
         {
-            var response = await _httpClient.DeleteAsync($"{_baseApiUrl}/Clients/{clientId}");
-
-            if (!response.IsSuccessStatusCode)
-            {
-                throw new InvalidOperationException($"Error unregistering client: {response.ReasonPhrase}");
-            }
+            var response = await SendAsync(HttpMethod.Delete, $"Clients/{clientId}");
+            HandleResponse(response, $"Error unregistering client with ID {clientId}");
         }
 
         public async Task UpdateClientOutputAsync(string ipAddress, int port, string output)
         {
-            try
+            var client = new Client
             {
-                var updateRequest = new
-                {
-                    IPAddress = ipAddress,
-                    Port = port,
-                    OutputMessage = output
-                };
-
-                var content = new StringContent(JsonConvert.SerializeObject(updateRequest), Encoding.UTF8, "application/json");
-                var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-output", content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Output updated successfully for client {ipAddress}:{port}.");
-                }
-                else
-                {
-                    Console.WriteLine($"Error updating output for client {ipAddress}:{port}: {response.ReasonPhrase}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating output for client {ipAddress}:{port}: {ex.Message}");
-            }
+                IPAddress = ipAddress,
+                Port = port,
+                OutputMessage = output
+            };
+            var response = await SendAsync(HttpMethod.Put, "clients/update-output", client);
+            HandleResponse(response, $"Error updating output for client {ipAddress}:{port}");
         }
 
         public async Task DeleteClientAsync(string ipAddress, int port)
         {
-            try
-            {
-                var response = await _httpClient.DeleteAsync($"{_baseApiUrl}/clients?ipAddress={ipAddress}&port={port}");
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new InvalidOperationException($"Error deleting client {ipAddress}:{port}: {response.ReasonPhrase}");
-                }
-                else
-                {
-                    Console.WriteLine($"Client {ipAddress}:{port} deleted successfully.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error deleting client {ipAddress}:{port}: {ex.Message}");
-            }
+            var response = await SendAsync(HttpMethod.Delete, $"clients?ipAddress={ipAddress}&port={port}");
+            HandleResponse(response, $"Error deleting client {ipAddress}:{port}");
         }
 
         public async Task IncrementJobsCompletedAsync(string ipAddress, int port)
         {
-            try
+            var response = await SendAsync(HttpMethod.Get, $"Clients?ipAddress={ipAddress}&port={port}");
+            if (response.IsSuccessStatusCode)
             {
-                var clientToUpdate = await _httpClient.GetAsync($"{_baseApiUrl}/Clients?ipAddress={ipAddress}&port={port}");
-                
-                
+                var responseBody = await response.Content.ReadAsStringAsync();
+                var clients = JsonConvert.DeserializeObject<List<Client>>(responseBody);
 
-                if (clientToUpdate.IsSuccessStatusCode)
+                var client = clients.FirstOrDefault(c => c.IPAddress == ipAddress && c.Port == port);
+
+                if (client == null)
                 {
-                    var responseBody = await clientToUpdate.Content.ReadAsStringAsync();
-                    Console.WriteLine($"Response Body from /Clients endpoint: {responseBody}");
-
-                    // Deserialize into a list of Client objects
-                    var clients = JsonConvert.DeserializeObject<List<Client>>(responseBody);
-
-                    // Find the appropriate client based on ipAddress and port
-                    var client = clients.FirstOrDefault(c => c.IPAddress == ipAddress && c.Port == port);
-
-                    if (client == null)
-                    {
-                        Console.WriteLine($"No client found with IP {ipAddress} and port {port}.");
-                        return;
-                    }
-
-                    client.JobsCompleted++;
-
-                    var content = new StringContent(JsonConvert.SerializeObject(client), Encoding.UTF8, "application/json");
-                    var response = await _httpClient.PutAsync($"{_baseApiUrl}/clients/update-jobs-completed", content);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine($"JobsCompleted incremented for client {ipAddress}:{port}.");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Error incrementing JobsCompleted for client {ipAddress}:{port}: {response.ReasonPhrase}");
-                    }
+                    Console.WriteLine($"No client found with IP {ipAddress} and port {port}.");
+                    return;
                 }
-                else
-                {
-                    Console.WriteLine($"Error fetching client {ipAddress}:{port} for incrementing: {clientToUpdate.ReasonPhrase}");
-                }
+
+                client.JobsCompleted++;
+                var updateResponse = await SendAsync(HttpMethod.Put, "clients/update-jobs-completed", client);
+                HandleResponse(updateResponse, $"Error incrementing JobsCompleted for client {ipAddress}:{port}");
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error incrementing JobsCompleted for client {ipAddress}:{port}: {ex.Message}");
+                HandleResponse(response, $"Error fetching client {ipAddress}:{port} for incrementing");
             }
         }
 
